@@ -1,0 +1,47 @@
+{
+    "name": "rpa-sefaz-economia",
+    "version": "1.0.0",
+    "description": "",
+    "main": "dist/index.js",
+    "scripts": {
+        "dev:queueNoteJob": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- queueNoteJob",
+        "dev:downloadNoteJob": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- downloadNoteJob",
+        "dev:organizeCertificatesJob": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- organizeCertificatesJob",
+        "dev:exportNotes": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- exportNotes",
+        "dev:audit": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- audit",
+        "build": "tsup",
+        "start:queueNoteJob": "node dist/index.ts queueNoteJob",
+        "start:downloadNoteJob": "node dist/index.ts downloadNoteJob",
+        "start:organizeCertificatesJob": "node dist/index.js organizeCertificatesJob",
+        "start:exportNotes": "node  dist/index.js exportNotes",
+        "start:audit": "node dist/index.js audit",
+        "start": "node dist/index.js",
+        "install": "npx playwright install"
+    },
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "@types/node-cron": "^3.0.11",
+        "@types/winston": "^2.4.4",
+        "axios": "^1.12.2",
+        "csv-writer": "^1.6.0",
+        "dotenv": "^17.2.2",
+        "exceljs": "^4.4.0",
+        "mongoose": "^8.18.2",
+        "node-cron": "^4.2.1",
+        "playwright": "^1.55.0",
+        "ts-node": "^10.9.2",
+        "winston": "^3.17.0",
+        "yargs": "^17.7.2"
+    },
+    "devDependencies": {
+        "@types/exceljs": "^0.5.3",
+        "@types/mongoose": "^5.11.96",
+        "@types/node": "^24.4.0",
+        "@types/yargs": "^17.0.33",
+        "ts-node-dev": "^2.0.0",
+        "tsconfig-paths": "^4.2.0",
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.2"
+    }
+}
