@@ -580,6 +580,7 @@ export default class NoteService {
             this.browser = await chromium.launch({ headless: false, slowMo: 500, })
             this.context = await this.browser.newContext({ ignoreHTTPSErrors: true, acceptDownloads: true })
             this.page = await this.context.newPage()
+
             await this.pageGoto()
             await this.login()
             await this.openConsultPage()
@@ -588,6 +589,8 @@ export default class NoteService {
                 logger.info('Link de download não disponível.')
                 return
             }
+
+            logger.info(this.note.linkDownload)
 
             await this.page.goto(this.note.linkDownload, { waitUntil: 'domcontentloaded', timeout: 60000 })
 
