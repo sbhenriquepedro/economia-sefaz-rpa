@@ -305,7 +305,7 @@ export default class NoteService {
         }
     }
 
-    async openPageAcessoRestrito () {
+    async openPageAcessoRestrito() {
         const [consultationPage] = await Promise.all([
             this.page.waitForEvent('popup'),
             this.page.locator('div[role="main"] div:has-text("Acesso Restrito")').nth(4).click()
@@ -360,7 +360,8 @@ export default class NoteService {
                 throw new Error('Não foi possível acessar o conteúdo do iframe.')
             }
         } catch (error) {
-            console.error('Erro ao obter conteúdo do iframe:', error)
+            const message = error instanceof Error ? error.message : String(error)
+            await this.setErrorStatus(`Erro ao obter conteúdo do iframe: ${message}`)
         }
     }
 
@@ -419,29 +420,35 @@ export default class NoteService {
     private async thowCaptcha(): Promise<void> {
         if (!this.continue) return
 
-        const siteKey = await this.iframeContent?.getAttribute('[data-callback="pegarTokenSuccess"]', "data-sitekey")
-        logger.info(`Sitekey encontrada: ${siteKey}`)
-    
-        const captchaToken = "success" // Substitua por sua lógica real de obtenção do token
-    
-        if (!captchaToken) {
-            logger.error("Não foi possível resolver o captcha!")
-            return
-        }
-    
-        await this.page.waitForTimeout(10000)
-    
-        // Injetar resposta no campo hidden
-        await this.iframeContent?.evaluate((token: string) => {
-            const input = document.getElementById('g-recaptcha-response') as HTMLInputElement // Corrigido o seletor
-            console.log("input: ", input)
-            if (input) {
-                input.value = token
+        try {
+            const siteKey = await this.iframeContent?.getAttribute('[data-callback="pegarTokenSuccess"]', "data-sitekey")
+            logger.info(`Sitekey encontrada: ${siteKey}`)
+        
+            const captchaToken = "success" // Substitua por sua lógica real de obtenção do token
+        
+            if (!captchaToken) {
+                logger.error("Não foi possível resolver o captcha!")
+                return
             }
-        }, captchaToken) // captchaToken agora é o segundo argumento de page.evaluate
-
+        
+            await this.page.waitForTimeout(10000)
+        
+            // Injetar resposta no campo hidden
+            await this.iframeContent?.evaluate((token: string) => {
+                const input = document.getElementById('g-recaptcha-response') as HTMLInputElement // Corrigido o seletor
+                console.log("input: ", input)
+                if (input) {
+                    input.value = token
+                }
+            }, captchaToken) // captchaToken agora é o segundo argumento de page.evaluate
     
-        logger.info("Token injetado no formulário!")
+        
+            logger.info("Token injetado no formulário!")
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error)
+            await this.setErrorStatus(`Erro ao resolver o captcha: ${message}`)
+        }
+
     }
 
     private async search() {
@@ -535,26 +542,12 @@ export default class NoteService {
             await this.search()
             await this.checkIfNotResult()
             await this.checkIfHavePermission()
-            await this.page.pause()
             await this.addToDownloadQueue()
         } catch (error) {
             // Um catch genérico para capturar erros inesperados (como o timeout do page.goto)
             logger.error(`Erro inesperado no processo getDownloadLink: ${error}`)
             
-            await Note.findOneAndUpdate(
-                {
-                    company: this.note.company,
-                    modelNote: this.note.modelNote,
-                    typeNote: this.note.typeNote,
-                    initialPeriod: this.note.initialPeriod,
-                    finalPeriod: this.note.finalPeriod,
-                },
-                {
-                    statusNote: 'Error',
-                    warn: `Falha crítica no site do sefaz: ${error}`,
-                },
-                { upsert: true, new: true }
-            )
+            await this.setErrorStatus(`Falha crítica no site do sefaz: ${error}`)
         } finally {
             logger.info("Finalizando processo getDownloadLink e fechando o navegador.")
 
