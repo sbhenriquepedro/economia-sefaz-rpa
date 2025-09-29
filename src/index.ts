@@ -9,6 +9,7 @@ import ApiPfxManager from '@services/ApiPFXManager'
 import logger from '@utils/logger'
 import { connectDB } from '@utils/database'
 import { validateEnv } from '@utils/validateEnv'
+import { exportNotes } from '@utils/exportNotes'
 
 const REQUIRED_ENV_VARS = ['API_PFX_MANAGER', 'FOLDER_TO_SAVE_XMLS_ROT_AUT_ENTRY', 'FOLDER_TO_SAVE_XMLS_ROT_AUT_OUT']
 
@@ -40,14 +41,11 @@ yargs(hideBin(process.argv))
         const downloadNoteJob = new DownloadNoteJob()
         await downloadNoteJob.run()
     })
-    // .command('organizeCertificatesJob', 'Executa o job de organizar certificados', {}, async () => {
-    //     await organizeCertificatesJob()
-    // })
-    // .command('exportNotes', 'Exporta as notas para um arquivo Excel', {}, async () => {
-    //     await connectDB()
-    //     const exporter = new exportNotes()
-    //     await exporter.run()
-    // })
+    .command('exportNotes', 'Exporta as notas para um arquivo Excel', {}, async () => {
+        await connectDB()
+        const exporter = new exportNotes()
+        await exporter.run()
+    })
     // .command('audit', 'Faz auditoria das notas', {}, async () => {
     //     await connectDB()
     //     const audit = new AuditService()
