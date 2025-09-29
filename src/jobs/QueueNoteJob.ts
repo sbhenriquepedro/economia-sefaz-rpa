@@ -1,4 +1,4 @@
-import Company, { ICompany } from '@models/Company'
+import Empresa, { IEmpresa } from '@models/Empresa'
 import Note, { StatusNote } from "@models/Note"
 
 import ApiPfxManager from '@services/ApiPFXManager'
@@ -9,11 +9,11 @@ import logger from '@utils/logger'
 import { getPeriodDates } from '@utils/period'
 
 export default class QueueNoteJob {
-    companiesToDownload = env.COMPANIES_TO_DOWNLOAD ? env.COMPANIES_TO_DOWNLOAD.split(',').map((id) => Number(id.trim())) : null
+    companiesToDownload = env.COMPANIES_TO_DOWNLOAD ? env.COMPANIES_TO_DOWNLOAD.split(',').map((id) => id.trim()) : null
     periods = getPeriodDates()
 
-    private async checkNoteIfCanProcess(codeCompanieAccountSystem: number): Promise<boolean> {
-        if (this.companiesToDownload && !this.companiesToDownload.includes(codeCompanieAccountSystem)) return false
+    private async checkNoteIfCanProcess(codigo: string): Promise<boolean> {
+        if (this.companiesToDownload && !this.companiesToDownload.includes(codigo)) return false
         return true
     }
 
@@ -38,17 +38,17 @@ export default class QueueNoteJob {
         }
     }
 
-    private async createNoteNonexistent (company: ICompany): Promise<void> {
+    private async createNoteNonexistent (empresa: IEmpresa): Promise<void> {
         await this.forEachCombination(async ({ typeNote, modelNote, initialPeriod, finalPeriod }) => {
             const existingNote = await Note.findOne({
-                company: company._id,
+                empresa: empresa._id,
                 modelNote, typeNote,
                 initialPeriod, finalPeriod
             })
 
             if (!existingNote) {
                 await Note.create({
-                    company: company._id,
+                    empresa: empresa._id,
                     typeNote,
                     modelNote,
                     initialPeriod,
@@ -60,40 +60,42 @@ export default class QueueNoteJob {
         })
     }
 
-    private async putNoteInQueue(company: ICompany, status: StatusNote[] = ['Pending', 'Error', 'Processing']): Promise<void> {
-        const canProcess = await this.checkNoteIfCanProcess(company.codeCompanieAccountSystem)
+    private async putNoteInQueue(empresa: IEmpresa, status: StatusNote[] = ['Pending', 'Error', 'Processing']): Promise<void> {
+        const canProcess = await this.checkNoteIfCanProcess(empresa.codigo)
         if (!canProcess) return
 
-        await this.createNoteNonexistent(company)
+        await this.createNoteNonexistent(empresa)
  
         await this.forEachCombination(async ({ typeNote, modelNote, initialPeriod, finalPeriod }) => {
             try {
                 const note = await Note.findOne({
-                    company: company._id,
+                    empresa: empresa._id,
                     typeNote, modelNote,
-                    initialPeriod, finalPeriod
-                }).populate('company')
+                    initialPeriod, finalPeriod,
+                })
 
+                const company = await Empresa.findById(note?.empresa)
                 
                 if (note != null && status.includes(note.statusNote)) {
                     logger.info('----------------------------------------')
-                    logger.info(`Empresa: ${company.name} (${company.codeCompanieAccountSystem}),`)
+                    logger.info(`Empresa: ${empresa.nome} (${empresa.codigo}),`)
                     logger.info(`Modelo: ${modelNote},`)
                     logger.info(`Tipo: ${typeNote},`)
                     logger.info(`Periodo: ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toLocaleDateString()}.`)
                     
                     const apiPfxManager = new ApiPfxManager()
                     await apiPfxManager.clearCertificates()
-
-                    if (company.federalRegistration) {
-                        const noteService = new NoteService(note)
+                    
+                    if (empresa.cnpj) {
+                        const noteService = new NoteService(company, note)
                         await noteService.setDownloadLink()
                     } else {
-                        await Note.findByIdAndUpdate(note._id, { statusNote: 'Error', warn: `Empresa sem CNPJ (${company.federalRegistration}).` })
+                        await Note.findByIdAndUpdate(note._id, { statusNote: 'Error', warn: `Empresa sem CNPJ (${empresa.cnpj}).` })
                     }
                 }
             } catch (error) {
-                logger.info(`Erro ao processar a empresa: ${company.name} (${company.codeCompanieAccountSystem}),`)
+                logger.info('----------------------------------------')
+                logger.info(`Erro ao processar a empresa: ${empresa.nome} (${empresa.cnpj}),`)
                 logger.info(`Modelo: ${modelNote},`)
                 logger.info(`Tipo: ${typeNote},`)
                 logger.info(`Periodo: ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toLocaleDateString()}.`)
@@ -101,7 +103,7 @@ export default class QueueNoteJob {
                 const message = error instanceof Error ? error.message : String(error)
 
                 await Note.findOneAndUpdate({
-                    company: company._id,
+                    empresa: empresa._id,
                     typeNote, modelNote,
                     initialPeriod, finalPeriod
                 }, {
@@ -114,12 +116,16 @@ export default class QueueNoteJob {
     
     async run(): Promise<void> {
         try {
-            const companies = await Company.find({ status: "A" })
+            const companies = await Empresa.find({
+                ie: { $ne: "", $exists: true },
+                fly: true,
+                situacao: "A"
+            })
 
             logger.info(`Quantidade de empresas ativas: ${companies.length}`)
             
-            for (const company of companies) {
-                await this.putNoteInQueue(company)
+            for (const empresa of companies) {
+                await this.putNoteInQueue(empresa)
             }
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error)

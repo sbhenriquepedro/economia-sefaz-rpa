@@ -1,3 +1,4 @@
+import Empresa, { IEmpresa } from '@models/Empresa'
 import Note from '@models/Note'
 
 import NoteService from '@services/NoteService'
@@ -14,22 +15,24 @@ export default class DownloadNoteJob {
                 const notes = await Note.find({
                     linkDownload: { $exists: true, $ne: "" },
                     statusNote: 'DonwloadPending'
-                }).populate('company')
-    
+                })
+                
                 for (const note of notes) {
-                    if (this.companiesToDownload && !this.companiesToDownload.includes(note.company.codeCompanieAccountSystem)) {
-                        logger.info(`Empresa ${note.company.name} (${note.company.codeCompanieAccountSystem}) não está na lista de empresas para download. Pulando...`)
+                    const empresa = await Empresa.findById(note?.empresa)
+
+                    if (this.companiesToDownload && !this.companiesToDownload.includes(empresa.codigo)) {
+                        logger.info(`Empresa ${empresa.nome} (${empresa.codigo}) não está na lista de empresas para download. Pulando...`)
                         return
                     }
                     
                     logger.info('********************************')
     
-                    logger.info(`Iniciando download da empresa: ${note.company.name} (${note.company.codeCompanieAccountSystem}),`)
+                    logger.info(`Iniciando download da empresa: ${empresa.nome} (${empresa.codigo}),`)
                     logger.info(`Modelo: ${note.modelNote},`)
                     logger.info(`Tipo: ${note.typeNote},`)
                     logger.info(`Periodo: ${note.initialPeriod.toLocaleDateString()} - ${note.finalPeriod.toLocaleDateString()}.`)
     
-                    await new NoteService(note).downloadFile()
+                    await new NoteService(empresa, note).downloadFile()
                 }
 
                 await new Promise((resolve) => setTimeout(resolve, 1000 * 60))

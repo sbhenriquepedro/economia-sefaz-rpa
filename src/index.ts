@@ -10,7 +10,7 @@ import logger from '@utils/logger'
 import { connectDB } from '@utils/database'
 import { validateEnv } from '@utils/validateEnv'
 
-const REQUIRED_ENV_VARS = ['API_PFX_MANAGER', 'FOLDER_TO_SAVE_XMLs_ROT_AUT_ENTRY', 'FOLDER_TO_SAVE_XMLs_ROT_AUT_OUT']
+const REQUIRED_ENV_VARS = ['API_PFX_MANAGER', 'FOLDER_TO_SAVE_XMLS_ROT_AUT_ENTRY', 'FOLDER_TO_SAVE_XMLS_ROT_AUT_OUT']
 
 async function main() {
     try {

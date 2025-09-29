@@ -3,6 +3,7 @@ import path from "path"
 import fs from "fs"
 
 import Note, { INote } from "@models/Note"
+import { IEmpresa } from "@models/Empresa"
 
 import env from "@utils/env"
 import logger from "@utils/logger"
@@ -33,18 +34,20 @@ export default class NoteService {
     page!: Page
     continue: boolean
     iframeContent?: Frame
+    empresa: IEmpresa
 
-    constructor(note: INote) {
+    constructor(empresa: IEmpresa, note: INote) {
+        this.empresa = empresa
         this.note = note
         this.continue = true
     }
 
-    private treateTextField (value: string): string {
+    private treateTextField(value: string): string {
         const result = value.trim().normalize('NFD').replace(/([\u0300-\u036f]|[^0-9a-zA-Z ])/g, '').toUpperCase()
         return this.minimalizeSpaces(result)
     }
 
-    private minimalizeSpaces (text: string): string {
+    private minimalizeSpaces(text: string): string {
         let result = text
         while (result.indexOf('  ') >= 0) {
             result = result.replace('  ', ' ')
@@ -61,7 +64,7 @@ export default class NoteService {
         })
     }
 
-    private zeroLeft (valueInsert: string, countZeros: number = 2): string {
+    private zeroLeft(valueInsert: string, countZeros: number = 2): string {
         return ('0000'.repeat(countZeros) + valueInsert).slice(-countZeros)
     }
 
@@ -76,17 +79,14 @@ export default class NoteService {
     private mountFolder(folder: string, aut: boolean = false): Promise<string> {
         return new Promise(async (resolve) => {
             const fields = new Object({}) as IFields
-            const nameCompany = this.treateTextField(this.note.company.name).substring(0, 70) ?? 'SEM_NOME'
-            const codeCompany = this.note.company.codeCompanieAccountSystem ?? '000000000'
+            const nameCompany = this.treateTextField(this.empresa.nome).substring(0, 70) ?? 'SEM_NOME'
+            const codeCompany = this.empresa.codigo ?? '000000000'
 
             if (aut) {
                 // cgce, codeCompanieWithNameCompanie, monthYear, monthYear
                 fields.modelNotaFiscal = await this.modelNotaFiscal(this.note.modelNote)
                 fields.companyCodeWithDash = `${codeCompany}-`
-                fields.monthAndYear = `${this.zeroLeft(
-                    String(this.note.initialPeriod.getMonth() + 1),
-                    2
-                )}${this.note.initialPeriod.getFullYear().toString()}`
+                fields.monthAndYear = `${this.zeroLeft(String(this.note.initialPeriod.getMonth() + 1), 2)}${this.note.initialPeriod.getFullYear().toString()}`
             } else {
                 fields.companyNameWithCode = `${nameCompany} - ${codeCompany}`
                 fields.year = this.note.initialPeriod.getFullYear().toString()
@@ -95,7 +95,7 @@ export default class NoteService {
                 fields.modelNotaFiscal = await this.modelNotaFiscal(this.note.modelNote)
             }
 
-            const parts = new Array(0) as Array<string>
+            const parts: Array<string> = new Array(0)
             for (const [key, value] of Object.entries(fields)) {
                 if (value) {
                     parts.push(value)
@@ -115,50 +115,31 @@ export default class NoteService {
 
     private createFolderToSaveData(): Promise<string> {
         return new Promise(async (resolve) => {
-            const folderToSaveXMLsRotinaAutomaticaEntrada = env.FOLDER_TO_SAVE_XMLs_ROT_AUT_ENTRY
-            const folderToSaveXMLsRotinaAutomaticaSaida = env.FOLDER_TO_SAVE_XMLs_ROT_AUT_OUT
+            const folderToSaveXMLsRotinaAutomaticaEntrada = env.FOLDER_TO_SAVE_XMLS_ROT_AUT_ENTRY
+            const folderToSaveXMLsRotinaAutomaticaSaida = env.FOLDER_TO_SAVE_XMLS_ROT_AUT_OUT
 
-            if (this.note.company.codeCompanieAccountSystem) {
-                if (
-                    this.note.typeNote === 0 &&
-                    folderToSaveXMLsRotinaAutomaticaEntrada
-                ) {
-                    resolve(
-                        await this.mountFolder(
-                            folderToSaveXMLsRotinaAutomaticaEntrada,
-                            true
-                        )
-                    )
-                } else if (
-                    this.note.typeNote === 1 &&
-                    folderToSaveXMLsRotinaAutomaticaSaida
-                ) {
-                    resolve(
-                        await this.mountFolder(
-                            folderToSaveXMLsRotinaAutomaticaSaida,
-                            true
-                        )
-                    )
-                } else {
-                    resolve('')
-                }
+            if (this.empresa.codigo && this.note.typeNote === 0 && folderToSaveXMLsRotinaAutomaticaEntrada) {
+                const folder = await this.mountFolder(folderToSaveXMLsRotinaAutomaticaEntrada, true)
+                resolve(folder)
+            } else if (this.empresa.codigo && this.note.typeNote === 1 && folderToSaveXMLsRotinaAutomaticaSaida) {
+                const folder = await this.mountFolder(folderToSaveXMLsRotinaAutomaticaSaida, true)
+                resolve(folder)
+            } else {
+                resolve('')
             }
         })
     }
 
     private async screenshot(pathname: string): Promise<string> {
-        if (!this.page.isClosed()) {
-            const dateTimeString = new Date().toLocaleString().replace(/[^a-zA-Z0-9]/g, '')
-            const name = `${dateTimeString}.png`
-            const pathScreenshot = path.join(`${pathname}\\prints`, name)
-            await this.page.screenshot({ path: path.resolve(pathScreenshot) })
-            return pathScreenshot
-        }
-
-        return ""
+        const dateTimeString = new Date().toLocaleString().replace(/[^a-zA-Z0-9]/g, '')
+        const name = `${dateTimeString}.png`
+        const pathScreenshot = path.join(`${pathname}\\prints`, name)
+        await this.page.screenshot({ path: path.resolve(pathScreenshot) })
+        logger.info(pathScreenshot)
+        return pathScreenshot
     }
 
-    async extractFirstRowTable(): Promise<IRow> {
+    private async extractFirstRowTable(): Promise<IRow> {
         // Aguarda a tabela estar visível
         await this.iframeContent?.waitForSelector('table.tablesorter tbody tr')
 
@@ -208,7 +189,7 @@ export default class NoteService {
                 
                 await Note.findOneAndUpdate(
                     {
-                        company: this.note.company,
+                        empresa: this.empresa._id,
                         modelNote: this.note.modelNote,
                         typeNote: this.note.typeNote,
                         initialPeriod: this.note.initialPeriod,
@@ -223,13 +204,10 @@ export default class NoteService {
                 )
             } else {
                 this.continue = false
-                this.setErrorStatus('Não foi possível obter a URL ou o nome do arquivo para download.')
+                await this.setErrorStatus('Não foi possível obter a URL ou o nome do arquivo para download.')
             }
         } catch (error) {
-            this.setErrorStatus(`Erro ao adicionar à fila de download: ${error}`)
-
-            await this.page.close()
-            await this.browser.close()
+            await this.setErrorStatus(`Erro ao adicionar à fila de download: ${error}`)
         }
     }
 
@@ -241,7 +219,7 @@ export default class NoteService {
 
         await Note.findOneAndUpdate(
             {
-                company: this.note.company,
+                empresa: this.empresa._id,
                 modelNote: this.note.modelNote,
                 typeNote: this.note.typeNote,
                 initialPeriod: this.note.initialPeriod,
@@ -264,7 +242,7 @@ export default class NoteService {
 
         await Note.findOneAndUpdate(
             {
-                company: this.note.company,
+                empresa: this.empresa._id,
                 modelNote: this.note.modelNote,
                 typeNote: this.note.typeNote,
                 initialPeriod: this.note.initialPeriod,
@@ -278,16 +256,15 @@ export default class NoteService {
         )
     }
 
-    async pageGoto(): Promise<void> {
+    private async pageGoto(): Promise<void> {
         await this.page.goto('https://portal.sefaz.go.gov.br/portalsefaz-apps/auth/login-form/', {
             waitUntil: "domcontentloaded",
             timeout: 60000
         })
     }
 
-    async login (): Promise<void> {
+    private async login(): Promise<void> {
         try {
-            
             const inputUsernameSelector = 'input[name="username"]'
             await this.page.locator(inputUsernameSelector).click()
             await this.page.fill(inputUsernameSelector, env.USER || '')
@@ -298,14 +275,13 @@ export default class NoteService {
             
             await this.page.locator('button:has-text("Autenticar")').click()
             await this.page.waitForTimeout(1000)
-
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error)
             await this.setErrorStatus(`Erro ao tentar fazer login: ${message}`)
         }
     }
 
-    async openPageAcessoRestrito() {
+    private async openPageAcessoRestrito(): Promise<Page> {
         const [consultationPage] = await Promise.all([
             this.page.waitForEvent('popup'),
             this.page.locator('div[role="main"] div:has-text("Acesso Restrito")').nth(4).click()
@@ -314,7 +290,7 @@ export default class NoteService {
         return consultationPage
     }
 
-    async openConsultPage() {
+    private async openConsultPage(): Promise<void> {
         if (!this.continue) return
 
         try {
@@ -338,7 +314,6 @@ export default class NoteService {
             
             // Aguarda formulário carregar
             await this.page.waitForTimeout(3000)
-            
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error)
             await this.setErrorStatus(`Erro ao abrir página de consulta: ${message}`)
@@ -389,7 +364,7 @@ export default class NoteService {
             const inputNumIESelector = 'input[name="cmpNumIeDest"]'
             await this.iframeContent?.waitForSelector(inputNumIESelector)
             await this.iframeContent?.click(inputNumIESelector)
-            await this.iframeContent?.fill(inputNumIESelector, this.note.company.stateRegistration || '')
+            await this.iframeContent?.fill(inputNumIESelector, this.empresa.ie || '')
 
             // Tipo de Nota
             let inputCmpTipoNotaSelector = ''
@@ -451,7 +426,7 @@ export default class NoteService {
 
     }
 
-    private async search() {
+    private async search(): Promise<void> {
         if (!this.continue) return
 
         await this.getIframeContent()
@@ -463,7 +438,7 @@ export default class NoteService {
 
             await Note.findOneAndUpdate(
                 {
-                    company: this.note.company,
+                    empresa: this.empresa._id,
                     typeNote: this.note.typeNote,
                     modelNote: this.note.modelNote,
                     initialPeriod: this.note.initialPeriod,
@@ -475,9 +450,6 @@ export default class NoteService {
                 },
                 { upsert: true, new: true }
             )
-
-            await this.page.close()
-            await this.browser.close()
         }
     }
 
@@ -489,10 +461,10 @@ export default class NoteService {
 
             if (notResult) {
                 this.continue = false
-                this.setWarningStatus('Sem resultados.')
+                await this.setWarningStatus('Sem resultados.')
             }
         } catch (error) {
-            this.setErrorStatus(`Erro ao verificar resultados: ${(error instanceof Error ? error.message : String(error))}`)
+            await this.setErrorStatus(`Erro ao verificar resultados: ${(error instanceof Error ? error.message : String(error))}`)
         }
     }
 
@@ -505,14 +477,18 @@ export default class NoteService {
             if (noResultAlert) {
                 this.continue = false
 
-                this.setErrorStatus('Sem permissão.')
-
-                await this.page.close()
-                await this.browser.close()
+                await this.setErrorStatus('Sem permissão.')
             }
         } catch (error) {
-            this.setErrorStatus(`Erro ao verificar resultados: ${(error instanceof Error ? error.message : String(error))}`)
+            await this.setErrorStatus(`Erro ao verificar resultados: ${(error instanceof Error ? error.message : String(error))}`)
         }
+    }
+
+    private async conferenceScreenshot(): Promise<string> {
+        await this.page.keyboard.press('End')
+        const screenshotPath = await this.createFolderToSaveData()
+        const screenshot = await this.screenshot(screenshotPath)
+        return screenshot
     }
 
     async setDownloadLink(): Promise<void> {
@@ -544,9 +520,6 @@ export default class NoteService {
             await this.checkIfHavePermission()
             await this.addToDownloadQueue()
         } catch (error) {
-            // Um catch genérico para capturar erros inesperados (como o timeout do page.goto)
-            logger.error(`Erro inesperado no processo getDownloadLink: ${error}`)
-            
             await this.setErrorStatus(`Falha crítica no site do sefaz: ${error}`)
         } finally {
             logger.info("Finalizando processo getDownloadLink e fechando o navegador.")
@@ -561,14 +534,7 @@ export default class NoteService {
         }
     }
 
-    private async conferenceScreenshot(): Promise<string> {
-        await this.page.keyboard.press('End')
-        const screenshotPath = await this.createFolderToSaveData()
-        const screenshot = await this.screenshot(screenshotPath)
-        return screenshot
-    }
-
-    async downloadFile() {
+    async downloadFile(): Promise<void> {
         try {
             this.browser = await chromium.launch({ headless: false, slowMo: 500, })
             this.context = await this.browser.newContext({ ignoreHTTPSErrors: true, acceptDownloads: true })
@@ -595,7 +561,7 @@ export default class NoteService {
                 line = this.page.locator(`table.tablesorter tbody tr:has(td.col-arquivo:has-text("${this.note.fileName}"))`)
                 if (await line.count() === 0) {
                     logger.info(`Arquivo "${this.note.fileName}" não encontrado na tabela.`)
-                    return null
+                    return 
                 }
             } else {
                 line = this.page.locator('table.tablesorter tbody tr').first()
@@ -605,7 +571,7 @@ export default class NoteService {
 
             if (!linkDownload) {
                 logger.info(`Arquivo ${this.note.fileName || '(primeira linha)'} encontrado, mas sem link de download.`)
-                return null
+                return 
             }
 
             const [download] = await Promise.all([
@@ -626,7 +592,7 @@ export default class NoteService {
                 logger.info('Download realizado com sucesso.')
 
                 await Note.findOneAndUpdate({
-                    company: this.note.company,
+                    empresa: this.empresa._id,
                     modelNote: this.note.modelNote,
                     typeNote: this.note.typeNote,
                     initialPeriod: this.note.initialPeriod,
@@ -644,9 +610,11 @@ export default class NoteService {
             logger.error(`Erro inesperado no processo downloadFile: ${error}`)
         } finally {
             logger.info("Finalizando processo downloadFile e fechando o navegador.")
+
             if (this.page && !this.page.isClosed()) {
                 await this.page.close()
             }
+            
             if (this.browser && this.browser.isConnected()) {
                 await this.browser.close()
             }
