@@ -26,7 +26,7 @@ export default class QueueNoteJob {
         }) => Promise<void | boolean>
     ) {
         for (const typeNote of [ 0, 1 ]) {
-            for (const modelNote of [ 0, 55, 65 ]) {
+            for (const modelNote of [ 0, 55 ]) {
                 for (const { initialPeriod, finalPeriod } of this.periods) {
                     if (typeNote === 0 && modelNote === 0) continue
                     if (typeNote === 1 && modelNote !== 0) continue
