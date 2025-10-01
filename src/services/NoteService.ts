@@ -319,6 +319,8 @@ export default class NoteService {
 
         try {
             this.page = await this.openPageAcessoRestrito()
+
+            await this.page.reload()
             
             // Primeiro clique em "Baixar XML NFE"
             await this.page.frameLocator('iframe[name="iNetaccess"]').locator('text=Baixar XML NFE').click()
