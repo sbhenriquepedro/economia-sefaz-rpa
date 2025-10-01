@@ -223,10 +223,10 @@ export default class NoteService {
                 )
             } else {
                 this.continue = false
-                this.setErrorStatus('Não foi possível obter a URL ou o nome do arquivo para download.')
+                await this.setErrorStatus('Não foi possível obter a URL ou o nome do arquivo para download.')
             }
         } catch (error) {
-            this.setErrorStatus(`Erro ao adicionar à fila de download: ${error}`)
+            await this.setErrorStatus(`Erro ao adicionar à fila de download: ${error}`)
 
             await this.page.close()
             await this.browser.close()
@@ -489,10 +489,10 @@ export default class NoteService {
 
             if (notResult) {
                 this.continue = false
-                this.setWarningStatus('Sem resultados.')
+                await this.setWarningStatus('Sem resultados.')
             }
         } catch (error) {
-            this.setErrorStatus(`Erro ao verificar resultados: ${(error instanceof Error ? error.message : String(error))}`)
+            await this.setErrorStatus(`Erro ao verificar resultados: ${(error instanceof Error ? error.message : String(error))}`)
         }
     }
 
@@ -505,13 +505,13 @@ export default class NoteService {
             if (noResultAlert) {
                 this.continue = false
 
-                this.setErrorStatus('Sem permissão.')
+                await this.setErrorStatus('Sem permissão.')
 
                 await this.page.close()
                 await this.browser.close()
             }
         } catch (error) {
-            this.setErrorStatus(`Erro ao verificar resultados: ${(error instanceof Error ? error.message : String(error))}`)
+            await this.setErrorStatus(`Erro ao verificar resultados: ${(error instanceof Error ? error.message : String(error))}`)
         }
     }
 
