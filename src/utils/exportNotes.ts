@@ -41,6 +41,18 @@ const statusMap: Record<string, string> = {
     Error: "Erro",
     Pending: "Pendente",
     Processing: "Processando",
+    DonwloadPending: "Pedente de Donwload"
+}
+
+const modelMap: Record<number, string> = {
+    0: "Todos",
+    55: "NF-e",
+    65: "NFC-e"
+}
+
+const typeMap: Record<number, string> = {
+    0: "Entrada",
+    1: "Saida",
 }
 
 export class exportNotes {
@@ -64,8 +76,9 @@ export class exportNotes {
                 { header: "Código", key: "companyCodeCompanieAccountSystem", width: 15 },
                 { header: "Empresa", key: "companyName", width: 30 },
                 { header: "CNPJ", key: "companyCnpj", width: 20 },
+                { header: "Info", key: "warn", width: 20 },
                 { header: "Modelo", key: "modelNote", width: 10 },
-                { header: "Situação", key: "sitNote", width: 15 },
+                { header: "Tipo", key: "typeNote", width: 10 },
                 { header: "Status", key: "statusNote", width: 15 },
                 { header: "Período Inicial", key: "initialPeriod", width: 15 },
                 { header: "Período Final", key: "finalPeriod", width: 15 },
@@ -73,14 +86,15 @@ export class exportNotes {
             ]
     
             notes.forEach((note: any) => {
-                const company = note.company ? companyMap.get(note.company.toString()) : null
+                const company = note.empresa ? companyMap.get(note.empresa.toString()) : null
     
                 worksheet.addRow({
-                    companyCodeCompanieAccountSystem: company?.codeCompanieAccountSystem || "",
-                    companyName: company?.name || "",
-                    companyCnpj: company?.federalRegistration || company?.cnpj || "",
-                    modelNote: note.modelNote || "",
-                    sitNote: note.sitNote || "",
+                    companyCodeCompanieAccountSystem: company?.codigo || "",
+                    companyName: company?.nome || "",
+                    companyCnpj: company?.cnpj || "",
+                    warn: note.warn || "",
+                    modelNote: modelMap[note.modelNote] || "",
+                    typeNote: typeMap[note.typeNote] || "",
                     statusNote: statusMap[note.statusNote] || note.statusNote || "",
                     initialPeriod: note.initialPeriod
                         ? new Date(note.initialPeriod).toISOString().split("T")[0]

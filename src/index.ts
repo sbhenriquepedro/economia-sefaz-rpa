@@ -8,6 +8,7 @@ import ApiPfxManager from '@services/ApiPFXManager'
 
 import logger from '@utils/logger'
 import { connectDB } from '@utils/database'
+import { exportNotes } from '@utils/exportNotes'
 import { validateEnv } from '@utils/validateEnv'
 
 const REQUIRED_ENV_VARS = ['API_PFX_MANAGER', 'FOLDER_TO_SAVE_XMLs_ROT_AUT_ENTRY', 'FOLDER_TO_SAVE_XMLs_ROT_AUT_OUT']
@@ -40,19 +41,11 @@ yargs(hideBin(process.argv))
         const downloadNoteJob = new DownloadNoteJob()
         await downloadNoteJob.run()
     })
-    // .command('organizeCertificatesJob', 'Executa o job de organizar certificados', {}, async () => {
-    //     await organizeCertificatesJob()
-    // })
-    // .command('exportNotes', 'Exporta as notas para um arquivo Excel', {}, async () => {
-    //     await connectDB()
-    //     const exporter = new exportNotes()
-    //     await exporter.run()
-    // })
-    // .command('audit', 'Faz auditoria das notas', {}, async () => {
-    //     await connectDB()
-    //     const audit = new AuditService()
-    //     await audit.removeNotesFromInactiveCompanies()
-    // })
+    .command('exportNotes', 'Exporta as notas para um arquivo Excel', {}, async () => {
+        await connectDB()
+        const exporter = new exportNotes()
+        await exporter.run()
+    })
     .demandCommand(1, 'Você precisa especificar um job para executar.')
     .strict()
     .help()
