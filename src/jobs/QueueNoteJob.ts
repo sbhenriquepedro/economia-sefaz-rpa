@@ -83,6 +83,7 @@ export default class QueueNoteJob {
                     logger.info(`Modelo: ${modelNote},`)
                     logger.info(`Tipo: ${typeNote},`)
                     logger.info(`Periodo: ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toLocaleDateString()}.`)
+                    logger.info(`Cancelada: ${note.canceled ? 'Sim' : 'Não'}`)
                     
                     const apiPfxManager = new ApiPfxManager()
                     await apiPfxManager.clearCertificates()
