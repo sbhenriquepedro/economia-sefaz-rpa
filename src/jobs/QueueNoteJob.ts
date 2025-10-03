@@ -115,7 +115,10 @@ export default class QueueNoteJob {
     async run(): Promise<void> {
         try {
             const companies = await Company.find({
-                stateRegistration: { $ne: "", $exists: true },
+                $and: [
+                    { stateRegistration: { $ne: "", $exists: true } },
+                    { stateRegistration: { $ne: null, $exists: true } },
+                ],
                 status: "A"
             })
 
