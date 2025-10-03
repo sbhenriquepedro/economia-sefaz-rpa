@@ -86,12 +86,12 @@ export class exportNotes {
             ]
     
             notes.forEach((note: any) => {
-                const company = note.empresa ? companyMap.get(note.empresa.toString()) : null
+                const company = note.company ? companyMap.get(note.company.toString()) : null
     
                 worksheet.addRow({
-                    companyCodeCompanieAccountSystem: company?.codigo || "",
-                    companyName: company?.nome || "",
-                    companyCnpj: company?.cnpj || "",
+                    companyCodeCompanieAccountSystem: company?.codeCompanieAccountSystem || "",
+                    companyName: company?.name || "",
+                    companyCnpj: company?.federalRegistration || "",
                     warn: note.warn || "",
                     modelNote: modelMap[note.modelNote] || "",
                     typeNote: typeMap[note.typeNote] || "",
