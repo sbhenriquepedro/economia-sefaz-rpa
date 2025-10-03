@@ -101,6 +101,7 @@ export default class QueueNoteJob {
                 logger.info(`Modelo: ${modelNote},`)
                 logger.info(`Tipo: ${typeNote},`)
                 logger.info(`Periodo: ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toLocaleDateString()}.`)
+                logger.info(`Cancelada: ${note.canceled ? 'Sim' : 'Não'}`)
                 
                 const message = error instanceof Error ? error.message : String(error)
 
