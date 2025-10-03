@@ -18,6 +18,7 @@ export interface INote extends Document {
     filePath?: string
     fileName?: string
     warn?: string
+    canceled?: boolean
 }
 
 const NoteSchema: Schema = new Schema(
@@ -34,6 +35,7 @@ const NoteSchema: Schema = new Schema(
         filePath: { type: String, required: false, default: '' },
         fileName: { type: String, required: false, default: '' },
         warn: { type: String, required: false, default: '' },
+        canceled: { type: Boolean, required: false, default: false }
     },
     { timestamps: true },
 )

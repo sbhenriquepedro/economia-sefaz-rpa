@@ -383,9 +383,11 @@ export default class NoteService {
             await this.iframeContent?.selectOption(inputModelSelector, optionModel)
 
             // Canceladas
-            // const inputCanceledSelector = 'input[name="cmpExbNotasCanceladas"]'
-            // const inputCanceled = await this.iframeContent?.waitForSelector(inputCanceledSelector)
-            // await inputCanceled?.check()
+            if (this.note.canceled) {
+                const inputCanceledSelector = 'input[name="cmpExbNotasCanceladas"]'
+                const inputCanceled = await this.iframeContent?.waitForSelector(inputCanceledSelector)
+                await inputCanceled?.check()
+            }
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error)
             await this.setErrorStatus(`Erro ao preencher formulário: ${message}`)

@@ -38,7 +38,7 @@ export default class QueueNoteJob {
         }
     }
 
-    private async createNoteNonexistent (empresa: IEmpresa): Promise<void> {
+    private async createNoteNonexistent (empresa: IEmpresa, canceled: Boolean = false): Promise<void> {
         await this.forEachCombination(async ({ typeNote, modelNote, initialPeriod, finalPeriod }) => {
             const existingNote = await Note.findOne({
                 empresa: empresa._id,
@@ -55,21 +55,22 @@ export default class QueueNoteJob {
                     finalPeriod,
                     screenshot: '',
                     quantityNotes: 0,
+                    canceled,
                 })
             }
         })
     }
 
-    private async putNoteInQueue(empresa: IEmpresa, status: StatusNote[] = ['Pending', 'Error', 'Processing']): Promise<void> {
+    private async putNoteInQueue(empresa: IEmpresa, canceled: Boolean = false, status: StatusNote[] = ['Pending', 'Error', 'Processing']): Promise<void> {
         const canProcess = await this.checkNoteIfCanProcess(empresa.codigo)
         if (!canProcess) return
 
-        await this.createNoteNonexistent(empresa)
+        await this.createNoteNonexistent(empresa, canceled)
  
         await this.forEachCombination(async ({ typeNote, modelNote, initialPeriod, finalPeriod }) => {
             try {
                 const note = await Note.findOne({
-                    empresa: empresa._id,
+                    empresa: empresa._id, canceled,
                     typeNote, modelNote,
                     initialPeriod, finalPeriod,
                 })
@@ -126,6 +127,7 @@ export default class QueueNoteJob {
             
             for (const empresa of companies) {
                 await this.putNoteInQueue(empresa)
+                await this.putNoteInQueue(empresa, true)
             }
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error)
