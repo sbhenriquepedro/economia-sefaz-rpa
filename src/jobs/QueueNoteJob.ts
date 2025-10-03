@@ -114,7 +114,10 @@ export default class QueueNoteJob {
     
     async run(): Promise<void> {
         try {
-            const companies = await Company.find({ status: "A" })
+            const companies = await Company.find({
+                stateRegistration: { $ne: "", $exists: true },
+                status: "A"
+            })
 
             logger.info(`Quantidade de empresas ativas: ${companies.length}`)
             
