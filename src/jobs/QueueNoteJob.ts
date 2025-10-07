@@ -18,7 +18,7 @@ export class QueueNoteJob {
     }
 
     protected async forEachCombination(
-        callback: (args: {
+        callback: (_args: {
             typeNote: number
             modelNote: number
             initialPeriod: Date

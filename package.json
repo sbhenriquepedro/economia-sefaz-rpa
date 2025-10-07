@@ -3,6 +3,7 @@
     "version": "1.0.0",
     "description": "",
     "main": "dist/index.js",
+    "type": "module",
     "scripts": {
         "start": "node dist/index.js",
         "install": "npx playwright install",
@@ -14,7 +15,8 @@
         "dev:download": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- download",
         "start:download": "node dist/index.ts download",
         "dev:report": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- report",
-        "start:report": "node  dist/index.js report"
+        "start:report": "node  dist/index.js report",
+        "lint": "eslint . --ext .ts,.js --fix"
     },
     "author": "",
     "license": "MIT",
@@ -34,11 +36,15 @@
         "yargs": "^17.7.2"
     },
     "devDependencies": {
+        "@eslint/js": "^9.37.0",
         "@types/adm-zip": "^0.5.7",
         "@types/exceljs": "^0.5.3",
         "@types/mongoose": "^5.11.96",
         "@types/node": "^24.4.0",
         "@types/yargs": "^17.0.33",
+        "@typescript-eslint/eslint-plugin": "^8.46.0",
+        "@typescript-eslint/parser": "^8.46.0",
+        "eslint": "^9.37.0",
         "ts-node-dev": "^2.0.0",
         "tsconfig-paths": "^4.2.0",
         "tsup": "^8.5.0",

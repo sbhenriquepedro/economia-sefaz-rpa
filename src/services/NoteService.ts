@@ -574,7 +574,7 @@ export class NoteService {
 
         try {
             // Espera o container aparecer (até 5 segundos)
-            const container = this.page.locator('.table-legend-right-container');
+            const container = this.page.locator('.table-legend-right-container')
             await container.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null)
 
             // Se não existir, retorna null
