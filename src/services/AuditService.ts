@@ -1,6 +1,6 @@
 import Note from '@models/Note'
 
-import logger from '@utils/logger'
+import { logger } from '@utils/logger'
 
 export class AuditService {
     async removeNotesFromInactiveCompanies() {

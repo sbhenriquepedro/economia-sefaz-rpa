@@ -1,11 +1,11 @@
 import Note from '@models/Note'
 
-import NoteService from '@services/NoteService'
+import { NoteService } from '@services/NoteService'
 
-import env from '@utils/env'
-import logger from '@utils/logger'
+import { env } from '@utils/env'
+import { logger } from '@utils/logger'
 
-export default class DownloadNoteJob {
+export class DownloadNoteJob {
     companiesToDownload = env.COMPANIES_TO_DOWNLOAD ? env.COMPANIES_TO_DOWNLOAD.split(',').map((id: string) => Number(id.trim())) : null
 
     async run() {
@@ -29,7 +29,7 @@ export default class DownloadNoteJob {
                     logger.info(`Tipo: ${note.typeNote},`)
                     logger.info(`Periodo: ${note.initialPeriod.toLocaleDateString()} - ${note.finalPeriod.toLocaleDateString()}.`)
     
-                    await new NoteService(note).downloadFile()
+                    await (new NoteService(note)).downloadFile()
                 }
 
                 await new Promise((resolve) => setTimeout(resolve, 1000 * 60))

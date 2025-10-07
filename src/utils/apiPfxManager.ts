@@ -1,11 +1,11 @@
 import axios from 'axios'
 
-import env from '@utils/env'
-import logger from '@utils/logger'
+import { env } from '@utils/env'
+import { logger } from '@utils/logger'
 
 const API_BASE_URL = env.API_PFX_MANAGER || 'http://localhost:5000'
 
-export default class ApiPfxManager {
+export class ApiPfxManager {
     private apiClient
 
     constructor() {

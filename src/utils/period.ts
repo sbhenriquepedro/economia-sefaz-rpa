@@ -1,5 +1,5 @@
-import logger from "./logger"
-import env from "./env"
+import { logger } from "./logger"
+import { env } from "./env"
 
 export type Period = { initialPeriod: Date, finalPeriod: Date }
 

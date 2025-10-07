@@ -1,11 +1,12 @@
 import { chromium, Browser, BrowserContext, Page, Frame } from "playwright"
 import path from "path"
 import fs from "fs"
+import AdmZip from 'adm-zip'
 
 import Note, { INote } from "@models/Note"
 
-import env from "@utils/env"
-import logger from "@utils/logger"
+import { env } from "@utils/env"
+import { logger } from "@utils/logger"
 
 interface IRow {
     sit: string
@@ -26,7 +27,7 @@ export interface IFields {
     monthAndYear?: string
 }
 
-export default class NoteService {
+export class NoteService {
     note: INote
     browser!: Browser
     context!: BrowserContext
@@ -158,7 +159,7 @@ export default class NoteService {
         return ""
     }
 
-    async extractFirstRowTable(): Promise<IRow> {
+    private async extractFirstRowTable(): Promise<IRow> {
         // Aguarda a tabela estar visível
         await this.iframeContent?.waitForSelector('table.tablesorter tbody tr')
 
@@ -180,6 +181,46 @@ export default class NoteService {
         return { sit, file, date, obs }
     }
 
+    private async checkFilesWithTheSameParameter(): Promise<void> {
+        if (!this.continue) return
+
+        try {
+            const noResultAlert = this.page.getByText('×Já existe um arquivo com os mesmos parâmetros solicitados em processamento. Aguarde a finalização antes de solicitar novamente')
+            if (await noResultAlert.isVisible()) {
+                this.continue = false
+
+                logger.warn('Já existe um arquivo com os mesmos parâmetros solicitados em processamento. Aguarde a finalização antes de solicitar novamente.')
+
+                await this.page.close()
+                await this.browser.close()
+            }
+        } catch (error) {
+            logger.error(`Erro ao verificar resultados: ${error}`)
+
+            const screenshotPath = await this.createFolderToSaveData()
+            const screenshot = await this.screenshot(screenshotPath)
+
+            await Note.findOneAndUpdate(
+                {
+                    company: this.note.company,
+                    modelNote: this.note.modelNote,
+                    typeNote: this.note.typeNote,
+                    initialPeriod: this.note.initialPeriod,
+                    finalPeriod: this.note.finalPeriod,
+                },
+                {
+                    screenshot,
+                    statusNote: 'Error',
+                    warn: `Erro ao verificar resultados: ${error}`,
+                },
+                { upsert: true, new: true }
+            )
+
+            await this.page.close()
+            await this.browser.close()
+        }
+    }
+
     private async addToDownloadQueue(): Promise<void> {
         if (!this.continue) return
 
@@ -187,6 +228,10 @@ export default class NoteService {
             await this.getIframeContent()
 
             await this.iframeContent?.getByRole('button', { name: 'Baixar todos os arquivos' }).click()
+
+            if (this.note.canceled) {
+                await this.page.getByText('Baixar somente eventos').click()
+            }
 
             const downloadButton = this.iframeContent?.getByRole('button', { name: 'Baixar', exact: true })
             await downloadButton?.evaluate((button: HTMLButtonElement) => button.removeAttribute('disabled'))
@@ -278,14 +323,14 @@ export default class NoteService {
         )
     }
 
-    async pageGoto(): Promise<void> {
+    private async pageGoto(): Promise<void> {
         await this.page.goto('https://portal.sefaz.go.gov.br/portalsefaz-apps/auth/login-form/', {
             waitUntil: "domcontentloaded",
             timeout: 60000
         })
     }
 
-    async login (): Promise<void> {
+    private async login (): Promise<void> {
         try {
             
             const inputUsernameSelector = 'input[name="username"]'
@@ -305,7 +350,7 @@ export default class NoteService {
         }
     }
 
-    async openPageAcessoRestrito() {
+    private async openPageAcessoRestrito() {
         const [consultationPage] = await Promise.all([
             this.page.waitForEvent('popup'),
             this.page.locator('div[role="main"] div:has-text("Acesso Restrito")').nth(4).click()
@@ -314,7 +359,7 @@ export default class NoteService {
         return consultationPage
     }
 
-    async openConsultPage() {
+    private async openConsultPage() {
         if (!this.continue) return
 
         try {
@@ -517,6 +562,62 @@ export default class NoteService {
         }
     }
 
+    private async conferenceScreenshot(): Promise<string> {
+        await this.page.keyboard.press('End')
+        const screenshotPath = await this.createFolderToSaveData()
+        const screenshot = await this.screenshot(screenshotPath)
+        return screenshot
+    }
+
+    private async setQuantityOfNotesFound(): Promise<void> {
+        if (!this.continue) return
+
+        try {
+            // Espera o container aparecer (até 5 segundos)
+            const container = this.page.locator('.table-legend-right-container');
+            await container.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null)
+
+            // Se não existir, retorna null
+            if (await container.count() === 0) return
+
+            // Tenta pegar o número diretamente da <div> interna
+            const innerDiv = container.locator('div')
+            const hasInnerDiv = await innerDiv.count()
+
+            let totalNotasText: string | null = null
+
+            if (hasInnerDiv) {
+                totalNotasText = await innerDiv.first().innerText()
+            } else {
+                // fallback: tenta extrair número do texto geral
+                const text = await container.innerText()
+                const match = text.match(/\d+/)
+                totalNotasText = match ? match[0] : null
+            }
+
+            // Retorna o número como inteiro, se existir
+            const quantityOfNotesFound = totalNotasText ? parseInt(totalNotasText, 10) : 0
+
+            if (quantityOfNotesFound > 0) {
+                await Note.findOneAndUpdate(
+                    {
+                        modelNote: this.note.modelNote,
+                        typeNote: this.note.typeNote,
+                        initialPeriod: this.note.initialPeriod,
+                        finalPeriod: this.note.finalPeriod,
+                    },
+                    { quantityOfNotesFound },
+                    { upsert: true, new: true },
+                )
+            }
+
+            await this.page.pause()
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error)
+            logger.error(`Erro ao tentar pegar a quantidade de notas fiscais econtradas: ${message}`)
+        }
+    }
+
     async setDownloadLink(): Promise<void> {
         try {
             await Note.findOneAndUpdate(
@@ -544,6 +645,8 @@ export default class NoteService {
             await this.search()
             await this.checkIfNotResult()
             await this.checkIfHavePermission()
+            await this.setQuantityOfNotesFound()
+            await this.checkFilesWithTheSameParameter()
             await this.addToDownloadQueue()
         } catch (error) {
             // Um catch genérico para capturar erros inesperados (como o timeout do page.goto)
@@ -563,22 +666,16 @@ export default class NoteService {
         }
     }
 
-    private async conferenceScreenshot(): Promise<string> {
-        await this.page.keyboard.press('End')
-        const screenshotPath = await this.createFolderToSaveData()
-        const screenshot = await this.screenshot(screenshotPath)
-        return screenshot
-    }
-
     async downloadFile() {
         try {
             this.browser = await chromium.launch({ headless: false, slowMo: 500, })
             this.context = await this.browser.newContext({ ignoreHTTPSErrors: true, acceptDownloads: true })
             this.page = await this.context.newPage()
-
+            
             await this.pageGoto()
             await this.login()
             await this.openConsultPage()
+            await this.getIframeContent()
             
             if (!this.note.linkDownload) {
                 logger.info('Link de download não disponível.')
@@ -588,6 +685,10 @@ export default class NoteService {
             logger.info(this.note.linkDownload)
 
             await this.page.goto(this.note.linkDownload, { waitUntil: 'domcontentloaded', timeout: 60000 })
+
+            const btn = this.page?.getByRole('button', { name: 'Histórico de Downloads de XMLs'})
+
+            if (await btn?.isVisible()) await btn.click()
 
             await this.page.waitForSelector('table.tablesorter tbody tr')
 
@@ -622,6 +723,17 @@ export default class NoteService {
             await download.saveAs(pathRelativeAbsolute)
 
             if (fs.existsSync(pathRelativeAbsolute)) {
+                // Conta os arquivos dentro do ZIP
+                let quantityOfNotesDownloaded = 0
+                try {
+                    const zip = new AdmZip(pathRelativeAbsolute)
+                    const entries = zip.getEntries()
+                    quantityOfNotesDownloaded = entries.length
+                    logger.info(`Quantidade de arquivos dentro do ZIP: ${quantityOfNotesDownloaded}`)
+                } catch (zipError) {
+                    logger.error(`Erro ao ler o ZIP: ${zipError}`)
+                }
+
                 const conferenceScreenshotPath = await this.conferenceScreenshot()
 
                 logger.info(conferenceScreenshotPath)
@@ -637,6 +749,7 @@ export default class NoteService {
                     screenshot: conferenceScreenshotPath,
                     filePath: pathRelativeAbsolute,
                     statusNote: 'Success',
+                    quantityOfNotesDownloaded,
                 }, { upsert: true, new: true })
             }
 

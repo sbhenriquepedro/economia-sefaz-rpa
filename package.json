@@ -1,28 +1,27 @@
 {
-    "name": "rpa-sefaz-economia",
+    "name": "economia-sefaz-rpa",
     "version": "1.0.0",
     "description": "",
     "main": "dist/index.js",
     "scripts": {
-        "dev:queueNoteJob": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- queueNoteJob",
-        "dev:downloadNoteJob": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- downloadNoteJob",
-        "dev:organizeCertificatesJob": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- organizeCertificatesJob",
-        "dev:exportNotes": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- exportNotes",
-        "dev:audit": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- audit",
-        "build": "tsup",
-        "start:queueNoteJob": "node dist/index.ts queueNoteJob",
-        "start:downloadNoteJob": "node dist/index.ts downloadNoteJob",
-        "start:organizeCertificatesJob": "node dist/index.js organizeCertificatesJob",
-        "start:exportNotes": "node  dist/index.js exportNotes",
-        "start:audit": "node dist/index.js audit",
         "start": "node dist/index.js",
-        "install": "npx playwright install"
+        "install": "npx playwright install",
+        "build": "tsup",
+        "dev:audit": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- audit",
+        "start:audit": "node dist/index.js audit",
+        "dev:queue": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- queue",
+        "start:queue": "node dist/index.ts queue",
+        "dev:download": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- download",
+        "start:download": "node dist/index.ts download",
+        "dev:report": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- report",
+        "start:report": "node  dist/index.js report"
     },
     "author": "",
     "license": "MIT",
     "dependencies": {
         "@types/node-cron": "^3.0.11",
         "@types/winston": "^2.4.4",
+        "adm-zip": "^0.5.16",
         "axios": "^1.12.2",
         "csv-writer": "^1.6.0",
         "dotenv": "^17.2.2",
@@ -35,6 +34,7 @@
         "yargs": "^17.7.2"
     },
     "devDependencies": {
+        "@types/adm-zip": "^0.5.7",
         "@types/exceljs": "^0.5.3",
         "@types/mongoose": "^5.11.96",
         "@types/node": "^24.4.0",

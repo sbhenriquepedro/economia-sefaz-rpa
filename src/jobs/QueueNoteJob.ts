@@ -1,14 +1,14 @@
 import Company, { ICompany } from '@models/Company'
 import Note, { StatusNote } from "@models/Note"
 
-import ApiPfxManager from '@services/ApiPFXManager'
-import NoteService from '@services/NoteService'
+import { ApiPfxManager } from '@utils/apiPfxManager'
+import { NoteService } from '@services/NoteService'
 
-import env from "@utils/env"
-import logger from '@utils/logger'
+import { env } from "@utils/env"
+import { logger } from '@utils/logger'
 import { getPeriodDates } from '@utils/period'
 
-export default class QueueNoteJob {
+export class QueueNoteJob {
     companiesToDownload = env.COMPANIES_TO_DOWNLOAD ? env.COMPANIES_TO_DOWNLOAD.split(',').map((id) => Number(id.trim())) : null
     periods = getPeriodDates()
 
@@ -60,7 +60,7 @@ export default class QueueNoteJob {
         })
     }
 
-    private async putNoteInQueue(company: ICompany, status: StatusNote[] = ['Pending', 'Error', 'Processing']): Promise<void> {
+    private async putNoteInQueue(company: ICompany, canceled: Boolean = false, status: StatusNote[] = ['Pending', 'Error', 'Processing']): Promise<void> {
         const canProcess = await this.checkNoteIfCanProcess(company.codeCompanieAccountSystem)
         if (!canProcess) return
 
@@ -84,6 +84,8 @@ export default class QueueNoteJob {
                     
                     const apiPfxManager = new ApiPfxManager()
                     await apiPfxManager.clearCertificates()
+
+                    note.canceled = canceled
 
                     if (company.federalRegistration) {
                         const noteService = new NoteService(note)
@@ -126,6 +128,7 @@ export default class QueueNoteJob {
             
             for (const company of companies) {
                 await this.putNoteInQueue(company)
+                await this.putNoteInQueue(company, true)
             }
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error)

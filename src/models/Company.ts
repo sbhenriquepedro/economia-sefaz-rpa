@@ -45,5 +45,4 @@ const CompanySchema: Schema = new Schema(
     { timestamps: true },
 )
 
-// Evita sobrescrever o model em hot reload/dev
 export default mongoose.models.Company || mongoose.model<ICompany>('Company', CompanySchema)
