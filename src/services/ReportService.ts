@@ -54,6 +54,7 @@ export class ReportService {
                 { header: "Qtd. Notas Encontradas", key: "quantityOfNotesFound", width: 15 },
                 { header: "Qtd. Notas Baixadas", key: "quantityOfNotesDownloaded", width: 15 },
                 { header: "Arquivo", key: "fileName", width: 40 },
+                { header: "Cancelada", key: "canceled", width: 40 },
             ]
             
             const filter = this.buildPeriodFilter(monthSearch)
@@ -66,7 +67,7 @@ export class ReportService {
                 const statusNote = statusNoteMap[note.statusNote] || note.statusNote || ""
                 const initialPeriod = note.initialPeriod ? new Date(note.initialPeriod).toISOString().split("T")[0] : ""
                 const finalPeriod = note.finalPeriod ? new Date(note.finalPeriod).toISOString().split("T")[0] : ""
-                const { quantityOfNotesFound, quantityOfNotesDownloaded, fileName } = note
+                const { quantityOfNotesFound, quantityOfNotesDownloaded, fileName, canceled } = note
 
                 logger.info('----------------------------------------')
                 logger.info(`Empresa: ${companyName}(${companyCodeCompanieAccountSystem}),`)
@@ -77,6 +78,7 @@ export class ReportService {
                 logger.info(`Qtd. Notas Encontradas: ${quantityOfNotesFound}.`)
                 logger.info(`Qtd. Notas Baixadas: ${quantityOfNotesDownloaded}.`)
                 logger.info(`Nome do Arquivo: ${fileName || 'Sem nome'}.`)
+                logger.info(`Cancelada? ${canceled ? 'Sim' : 'Não'}.`)
 
                 worksheet.addRow({
                     companyCodeCompanieAccountSystem,
@@ -90,6 +92,7 @@ export class ReportService {
                     quantityOfNotesFound,
                     quantityOfNotesDownloaded,
                     fileName,
+                    canceled: canceled ? 'Sim' : 'Não'
                 })
             })
 
