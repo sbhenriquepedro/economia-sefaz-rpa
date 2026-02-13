@@ -59,17 +59,18 @@ yargs(hideBin(process.argv))
             process.exit(1)
         }
     })
-    .command('report', 'Exporta o relatorio das notas fiscais em um arquivo Excel.', {
-        year: {
-            alias: 'y',
-            type: 'number',
-            description: 'Ano do relatorio',
-        },
-        month: {
-            alias: 'm',
-            type: 'number',
-            description: 'Mes do relatorio (1-12)',
-        }
+    .command('report', 'Exporta o relatorio das notas fiscais em um arquivo Excel.', (yargs) => {
+        return yargs
+            .option('year', {
+                alias: 'y',
+                type: 'number',
+                description: 'Ano do relatorio',
+            })
+            .option('month', {
+                alias: 'm',
+                type: 'number',
+                description: 'Mes do relatorio (1-12)',
+            })
     }, async (argv) => {
         try {
             await connectDB()
