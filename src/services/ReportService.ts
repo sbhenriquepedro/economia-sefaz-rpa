@@ -9,19 +9,7 @@ import Note, { typeNoteMap, modelNoteMap, statusNoteMap } from "@models/Note"
 import { logger } from "@utils/logger"
 
 export class ReportService {
-    private buildPeriodFilter(monthSearch: number = 0): FilterQuery<typeof Note> {
-        const now = new Date()
-        let year = now.getFullYear()
-        let month = monthSearch ?? now.getMonth() + 1 // getMonth() retorna 0-11
-    
-        if (now.getDate() <= 5) {
-            month -= 1
-            if (month === 0) {
-                month = 12
-                year -= 1
-            }
-        }
-    
+    private buildPeriodFilter(year: number, month: number): FilterQuery<typeof Note> {
         return {
             $expr: {
                 $and: [
@@ -34,10 +22,10 @@ export class ReportService {
         }
     }
 
-    public async generateNotesReport(monthSearch: number = 0): Promise<void> {
+    public async generateNotesReport(year: number, month: number): Promise<void> {
         try {
             logger.info('----------------------------------------')
-            logger.info(`Gerando relatorio das notas do mes: ${String(monthSearch).padStart(2, '0')}`)
+            logger.info(`Gerando relatorio das notas do mes: ${String(month).padStart(2, '0')}/${year}`)
 
             const workbook = new ExcelJS.Workbook()
             const worksheet = workbook.addWorksheet("Notas")
@@ -57,7 +45,7 @@ export class ReportService {
                 { header: "Cancelada", key: "canceled", width: 40 },
             ]
             
-            const filter = this.buildPeriodFilter(monthSearch)
+            const filter = this.buildPeriodFilter(year, month)
             const notes = await Note.find(filter).populate('company')
 
             notes.forEach((note: any) => {
@@ -116,7 +104,7 @@ export class ReportService {
             logger.error("Erro:", err)
         } finally {
             logger.info('----------------------------------------')
-            logger.info(`Relatorio das notas do mes: ${String(monthSearch).padStart(2, '0')} finalizado.`)
+            logger.info(`Relatorio das notas do mes: ${String(month).padStart(2, '0')}/${year} finalizado.`)
         }
     }
 }

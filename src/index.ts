@@ -59,13 +59,29 @@ yargs(hideBin(process.argv))
             process.exit(1)
         }
     })
-    .command('report', 'Exporta o relatorio das notas fiscais em um arquivo Excel.', {}, async () => {
+    .command('report', 'Exporta o relatorio das notas fiscais em um arquivo Excel.', {
+        year: {
+            alias: 'y',
+            type: 'number',
+            description: 'Ano do relatorio',
+        },
+        month: {
+            alias: 'm',
+            type: 'number',
+            description: 'Mes do relatorio (1-12)',
+        }
+    }, async (argv) => {
         try {
             await connectDB()
 
             logger.info('----------------------------------------')
             logger.info('Iniciando processo de exportar relatorio das notas fiscais em um arquivo Excel.')
-            await new ReportNoteJob().run()
+            
+            const now = new Date()
+            const year = argv.year ?? now.getFullYear()
+            const month = argv.month ?? (now.getMonth() + 1)
+            
+            await new ReportNoteJob().run(year, month)
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error)
             logger.error('----------------------------------------')
