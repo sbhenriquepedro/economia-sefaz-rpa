@@ -20,7 +20,7 @@ const modelNoteLabels: Record<number, string> = {
     65: 'NFC-e',
 }
 
-// Combinações válidas (igual ao QueueNoteJob.forEachCombination)
+// Combinações válidas (igual ao QueueNoteJob.forEachCombination):
 // typeNote=0 (Entradas): modelNote 55 e 65
 // typeNote=1 (Saidas):   modelNote 0 (Todos)
 const VALID_COMBINATIONS: Array<{ typeNote: number; modelNote: number }> = [
