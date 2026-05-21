@@ -59,38 +59,42 @@ yargs(hideBin(process.argv))
             process.exit(1)
         }
     })
-    .command('report', 'Exporta o relatorio das notas fiscais em um arquivo Excel.', (yargs) => {
+    .command('report', 'Exporta o relatorio das notas fiscais em um arquivo de texto.', (yargs) => {
         return yargs
-            .option('year', {
-                alias: 'y',
-                type: 'number',
-                description: 'Ano do relatorio',
+            .option('companies', {
+                alias: 'c',
+                type: 'string',
+                description: 'Código(s) da(s) empresa(s) separado(s) por vírgula (opcional)',
             })
-            .option('month', {
-                alias: 'm',
-                type: 'number',
-                description: 'Mes do relatorio (1-12)',
+            .option('initialPeriod', {
+                alias: 'i',
+                type: 'string',
+                description: 'Período inicial no formato MM/AAAA (opcional)',
+            })
+            .option('finalPeriod', {
+                alias: 'f',
+                type: 'string',
+                description: 'Período final no formato MM/AAAA (opcional)',
             })
     }, async (argv) => {
         try {
             await connectDB()
 
             logger.info('----------------------------------------')
-            logger.info('Iniciando processo de exportar relatorio das notas fiscais em um arquivo Excel.')
-            
-            const now = new Date()
-            const year = argv.year ?? now.getFullYear()
-            const month = argv.month ?? (now.getMonth() + 1)
-            
-            await new ReportNoteJob().run(year, month)
+            logger.info('Iniciando processo de exportar relatorio das notas fiscais em um arquivo de texto.')
+            await new ReportNoteJob().run(
+                argv.companies as string | undefined,
+                argv.initialPeriod as string | undefined,
+                argv.finalPeriod as string | undefined
+            )
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error)
             logger.error('----------------------------------------')
-            logger.error(`Erro ao tentar exportar o relatorio das notas fiscais em um arquivo Excel: ${message}`)
+            logger.error(`Erro ao tentar exportar o relatorio das notas fiscais: ${message}`)
             process.exit(0)
         } finally {
             logger.info('----------------------------------------')
-            logger.info('Processo de exportar o relatorio das notas fiscais em um arquivo Excel finalizado.')
+            logger.info('Processo de exportar o relatorio das notas fiscais finalizado.')
             process.exit(1)
         }
     })
